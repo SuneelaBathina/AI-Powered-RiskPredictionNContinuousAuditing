@@ -1,0 +1,82 @@
+{
+  "regulations": [
+    {
+      "content": "The Bank Secrecy Act (BSA) requires financial institutions to assist U.S. government agencies in detecting and preventing money laundering. Key requirements include filing Currency Transaction Reports (CTRs) for transactions over $10,000 and Suspicious Activity Reports (SARs) for suspicious transactions.",
+      "source": "FinCEN",
+      "category": "AML"
+    },
+    {
+      "content": "Anti-Money Laundering (AML) compliance programs must include: (1) Internal policies, procedures and controls; (2) Designation of a compliance officer; (3) Ongoing employee training; (4) Independent audit function.",
+      "source": "FFIEC",
+      "category": "AML"
+    },
+    {
+      "content": "Know Your Customer (KYC) requirements mandate collecting customer identification, verifying identity, understanding the nature of customer's business, and monitoring transactions for suspicious activity.",
+      "source": "Regulatory Guidelines",
+      "category": "KYC"
+    },
+    {
+      "content": "The Dodd-Frank Act requires enhanced prudential standards for large financial companies, including risk management requirements, stress testing, and early remediation requirements.",
+      "source": "Dodd-Frank Act",
+      "category": "Compliance"
+    }
+  ],
+  "risk_factors": [
+    {
+      "content": "High-risk transaction indicators include: transactions structured to avoid reporting thresholds, rapid movement of funds through multiple accounts, transactions inconsistent with customer's business, and transactions involving high-risk jurisdictions.",
+      "source": "Risk Assessment Guide",
+      "category": "Risk"
+    },
+    {
+      "content": "Geographic risk factors include countries identified as having weak AML/CFT regimes, countries subject to sanctions, and countries with high levels of corruption.",
+      "source": "FATF",
+      "category": "Risk"
+    },
+    {
+      "content": "Customer risk factors include: Politically Exposed Persons (PEPs), customers in cash-intensive businesses, non-resident customers, and complex ownership structures.",
+      "source": "Risk Matrix",
+      "category": "Risk"
+    }
+  ],
+  "audit_procedures": [
+    {
+      "content": "Continuous auditing involves real-time monitoring of transactions, automated alerts for unusual patterns, periodic sampling of transactions, and ongoing risk assessment updates.",
+      "source": "Audit Best Practices",
+      "category": "Audit"
+    },
+    {
+      "content": "Audit sampling methods include: random sampling for low-risk populations, stratified sampling for varied risk levels, and judgmental sampling for high-risk areas.",
+      "source": "Audit Manual",
+      "category": "Audit"
+    },
+    {
+      "content": "Key audit procedures for financial institutions include: verifying transaction documentation, testing internal controls, reviewing exception reports, and assessing compliance with regulations.",
+      "source": "Audit Standards",
+      "category": "Audit"
+    }
+  ],
+  "investigation_guidelines": [
+    {
+      "content": "When investigating suspicious transactions, gather all relevant documentation, analyze transaction patterns, interview involved parties, and document all findings thoroughly.",
+      "source": "Investigation Handbook",
+      "category": "Investigation"
+    },
+    {
+      "content": "Evidence collection must maintain chain of custody, preserve original documents, and ensure all evidence is admissible in legal proceedings.",
+      "source": "Legal Guidelines",
+      "category": "Investigation"
+    }
+  ],
+  "reporting_requirements": [
+    {
+      "content": "CTRs must be filed within 15 days of the transaction. The report must include customer identification, transaction details, and filing institution information.",
+      "source": "BSA Requirements",
+      "category": "Reporting"
+    },
+    {
+      "content": "SARs must be filed within 30 days of detecting suspicious activity. They require detailed description of the suspicious activity and involved parties.",
+      "source": "FinCEN SAR Instructions",
+      "category": "Reporting"
+    }
+  ]
+}
