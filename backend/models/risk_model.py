@@ -29,6 +29,80 @@ class RiskPredictor:
         self.label_encoders = {}
         self.feature_columns = None
         self.model_path = 'models/saved/risk_model.pkl'
+
+    def predict_batch(self, transactions_df):
+        """Predict risk for batch of transactions - NO individual logging"""
+        if self.model is None:
+            self.load_model() or self.train_from_csv('data/financial_transactions.csv')
+        
+        # Convert to DataFrame if needed
+        if isinstance(transactions_df, list):
+            transactions_df = pd.DataFrame(transactions_df)
+        
+        if len(transactions_df) == 0:
+            return []
+        
+        # Extract features for ALL transactions at once (no loop)
+        X = self._extract_features_batch(transactions_df)
+        
+        # Scale features
+        try:
+            X_scaled = self.scaler.transform(X)
+        except:
+            X_scaled = X
+        
+        # Predict all at once
+        risk_scores = self.model.predict_proba(X_scaled)[:, 1]
+        
+        # Build results
+        results = []
+        for i, score in enumerate(risk_scores):
+            results.append({
+                'transaction_id': transactions_df.iloc[i].get('transaction_id', f'TXN_{i}'),
+                'risk_score': float(score),
+                'risk_level': self._get_risk_level(score),
+                'confidence': float(2 * abs(score - 0.5)),
+                'prediction': int(score > 0.5)
+            })
+        
+        return results
+
+    def _extract_features_batch(self, df):
+        """Extract features for batch of transactions - VECTORIZED, no loops"""
+        
+        # Work on a copy
+        df = df.copy()
+        
+        # Convert timestamp if present
+        if 'timestamp' in df.columns:
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df['hour'] = df['timestamp'].dt.hour
+            df['day_of_week'] = df['timestamp'].dt.dayofweek
+            df['is_weekend'] = (df['day_of_week'] >= 5).astype(int)
+        
+        # Use stored feature columns if available
+        if self.feature_columns:
+            # Create missing columns with default values (vectorized)
+            for col in self.feature_columns:
+                if col not in df.columns:
+                    df[col] = 0
+            
+            # Select only required columns
+            X = df[self.feature_columns].fillna(0).values
+        else:
+            # Use all numeric columns
+            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            if numeric_cols:
+                X = df[numeric_cols].fillna(0).values
+            else:
+                # Create default features
+                X = np.array([[1000, 365, 10000]] * len(df))
+        
+        # Ensure 2D array
+        if len(X.shape) == 1:
+            X = X.reshape(1, -1)
+        
+        return X
         
     def train_from_csv(self, csv_path, target_column='is_fraud'):
         """Train model from CSV file"""
