@@ -337,28 +337,96 @@ logger.info("=" * 60)
 train_model()
 
 # Import and register routes
+vector_store = None
+audit_workflow = None
+
+# THREE-TIER FALLBACK STRATEGY for Audit Workflow Initialization
+
+# TIER 1: LangGraph-based workflow with agent orchestration
 try:
-    from rag.vector_store import VectorStore
-    from graph.workflow import AuditWorkflow
+    logger.info("=" * 60)
+    logger.info("TIER 1: Attempting to initialize LangGraphAuditWorkflow...")
+    logger.info("=" * 60)
+    
+    from graph.langgraph_audit_workflow import LangGraphAuditWorkflow
     from aws_integration.bedrock_client import MockBedrockClient
     
-    # Initialize vector store
-    logger.info("Initializing vector store...")
-    vector_store = VectorStore()
+    # Initialize vector store for RAG
+    try:
+        from rag.vector_store import VectorStore
+        vector_store = VectorStore()
+        logger.info("✓ Vector store initialized")
+    except Exception as vector_error:
+        logger.warning(f"⚠ Vector store initialization failed: {vector_error}")
+        vector_store = None
     
-    # Initialize audit workflow
-    logger.info("Initializing audit workflow...")
+    # Initialize Bedrock client for LLM
     bedrock_client = MockBedrockClient()
-    audit_workflow = AuditWorkflow(risk_predictor, vector_store, bedrock_client)
-    logger.info("✓ Audit workflow initialized")
     
-except Exception as e:
-    logger.error(f"✗ Error initializing other components: {e}")
-    vector_store = None
+    # Create LangGraph workflow
+    audit_workflow = LangGraphAuditWorkflow(risk_predictor, vector_store, bedrock_client)
+    logger.info("✓ LangGraphAuditWorkflow initialized successfully")
+    logger.info("  - Agents: RiskAssessment, Audit, Compliance, Investigation, Report")
+    logger.info("  - Graph: Orchestrates agents using LangGraph StateGraph")
+    logger.info("=" * 60)
+
+except (ImportError, ModuleNotFoundError, Exception) as langgraph_error:
+    logger.warning(f"⚠ LangGraphAuditWorkflow unavailable: {langgraph_error}")
+    logger.info("Falling back to TIER 2...")
     audit_workflow = None
+    
+    # TIER 2: Full workflow with all dependencies
+    try:
+        logger.info("=" * 60)
+        logger.info("TIER 2: Attempting to initialize full AuditWorkflow...")
+        logger.info("=" * 60)
+        
+        from graph.workflow import AuditWorkflow
+        from aws_integration.bedrock_client import MockBedrockClient
+        
+        try:
+            from rag.vector_store import VectorStore
+            vector_store = VectorStore()
+            logger.info("✓ Vector store initialized")
+        except Exception as vector_error:
+            logger.warning(f"⚠ Vector store initialization failed: {vector_error}")
+            vector_store = None
+        
+        bedrock_client = MockBedrockClient()
+        audit_workflow = AuditWorkflow(risk_predictor, vector_store, bedrock_client)
+        logger.info("✓ Full AuditWorkflow initialized successfully")
+        logger.info("=" * 60)
+    
+    except (ImportError, ModuleNotFoundError, Exception) as full_error:
+        logger.warning(f"⚠ Full AuditWorkflow unavailable: {full_error}")
+        logger.info("Falling back to TIER 3...")
+        audit_workflow = None
+        
+        # TIER 3: Lightweight integrated workflow (no LLM dependencies)
+        try:
+            logger.info("=" * 60)
+            logger.info("TIER 3: Attempting to initialize IntegratedAuditWorkflow...")
+            logger.info("=" * 60)
+            
+            from graph.integrated_workflow import IntegratedAuditWorkflow
+            audit_workflow = IntegratedAuditWorkflow(risk_predictor, vector_store, None)
+            logger.info("✓ IntegratedAuditWorkflow initialized successfully")
+            logger.info("  - No LLM or LangGraph dependencies")
+            logger.info("  - Uses ML model for risk assessment")
+            logger.info("  - Full audit workflow support")
+            logger.info("=" * 60)
+        
+        except Exception as integrated_error:
+            logger.error(f"✗ All workflow initialization attempts failed!")
+            logger.error(f"  TIER 1 (LangGraph): {langgraph_error}")
+            logger.error(f"  TIER 2 (Full): {full_error}")
+            logger.error(f"  TIER 3 (Integrated): {integrated_error}")
+            audit_workflow = None
+            logger.info("=" * 60)
 
 # Register routes
 try:
+    
     register_routes(app, risk_predictor, audit_workflow, vector_store)
     logger.info("✓ Routes registered successfully")
 except Exception as e:
