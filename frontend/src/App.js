@@ -40,6 +40,9 @@ import AgentConsole from './components/AgentConsole';
 import TransactionsView from './components/TransactionsView';
 import Reports from './components/Reports';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+
+
 function App() {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -47,19 +50,15 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   
-  // WebSocket connection for real-time updates
-  const { lastMessage, sendMessage } = useWebSocket('ws://localhost:5000');
+  // Socket.IO connection for real-time updates
+  const { lastMessage, sendMessage } = useWebSocket(API_BASE);
 
   useEffect(() => {
     if (lastMessage) {
-      try {
-        const data = JSON.parse(lastMessage.data);
-        if (data.type === 'REAL_TIME_ALERT') {
-          setNotifications(prev => [data.data, ...prev].slice(0, 50));
-          setUnreadCount(prev => prev + 1);
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+      const { event, payload } = lastMessage;
+      if (event === 'REAL_TIME_ALERT') {
+        setNotifications(prev => [payload, ...prev].slice(0, 50));
+        setUnreadCount(prev => prev + 1);
       }
     }
   }, [lastMessage]);
@@ -100,6 +99,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ display: 'flex' }}>
+        {/* App Bar */}
         <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
           <Toolbar>
             <IconButton
@@ -110,7 +110,7 @@ function App() {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
+            <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
               AI-Powered Financial Risk & Audit System
             </Typography>
             <IconButton color="inherit" onClick={handleNotificationClick}>
@@ -118,146 +118,91 @@ function App() {
                 <NotificationsIcon />
               </Badge>
             </IconButton>
-            <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
+            <IconButton
+              color="inherit"
+              onClick={(event) => setAnchorEl(event.currentTarget)}
+            >
               <Avatar sx={{ width: 32, height: 32 }}>
                 <PersonIcon />
               </Avatar>
             </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={() => setAnchorEl(null)}
+            >
+              <MenuItem onClick={() => setAnchorEl(null)}>
+                <ListItemIcon>
+                  <PersonIcon fontSize="small" />
+                </ListItemIcon>
+                Profile
+              </MenuItem>
+              <MenuItem onClick={() => setAnchorEl(null)}>
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                Settings
+              </MenuItem>
+              <MenuItem onClick={() => setAnchorEl(null)}>
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MenuItem>
+            </Menu>
           </Toolbar>
         </AppBar>
 
+        {/* Navigation Drawer */}
         <Drawer
-          variant="permanent"
+          variant="persistent"
+          anchor="left"
+          open={drawerOpen}
           sx={{
-            width: drawerOpen ? 280 : 72,
+            width: 240,
             flexShrink: 0,
             '& .MuiDrawer-paper': {
-              width: drawerOpen ? 280 : 72,
+              width: 240,
               boxSizing: 'border-box',
-              transition: theme.transitions.create('width', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-              overflowX: 'hidden',
             },
           }}
         >
           <Toolbar />
-          <Box sx={{ overflow: 'auto', mt: 2 }}>
+          <Box sx={{ overflow: 'auto' }}>
             <List>
               {menuItems.map((item) => (
                 <ListItem
                   button
                   key={item.id}
-                  onClick={() => setCurrentPage(item.id)}
                   selected={currentPage === item.id}
-                  sx={{
-                    mx: 1,
-                    borderRadius: 1,
-                    '&.Mui-selected': {
-                      backgroundColor: 'primary.light',
-                      color: 'primary.contrastText',
-                      '&:hover': {
-                        backgroundColor: 'primary.main',
-                      },
-                      '& .MuiListItemIcon-root': {
-                        color: 'primary.contrastText',
-                      },
-                    },
-                  }}
+                  onClick={() => setCurrentPage(item.id)}
                 >
-                  <ListItemIcon sx={{ minWidth: drawerOpen ? 56 : 'auto', ml: drawerOpen ? 0 : 1 }}>
+                  <ListItemIcon>
                     {item.icon}
                   </ListItemIcon>
-                  {drawerOpen && <ListItemText primary={item.label} />}
+                  <ListItemText primary={item.label} />
                 </ListItem>
               ))}
             </List>
           </Box>
         </Drawer>
 
-        <Box component="main" sx={{ flexGrow: 1, p: 3, bgcolor: 'background.default', minHeight: '100vh' }}>
+        {/* Main Content */}
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            transition: theme.transitions.create('margin', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen,
+            }),
+            marginLeft: drawerOpen ? 0 : `-240px`,
+          }}
+        >
           <Toolbar />
           {renderPage()}
         </Box>
-
-        {/* User Menu */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={() => setAnchorEl(null)}
-        >
-          <MenuItem onClick={() => setAnchorEl(null)}>
-            <ListItemIcon>
-              <PersonIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Profile</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => setAnchorEl(null)}>
-            <ListItemIcon>
-              <SettingsIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Settings</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => setAnchorEl(null)}>
-            <ListItemIcon>
-              <LogoutIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Logout</ListItemText>
-          </MenuItem>
-        </Menu>
-
-        {/* Notifications Drawer */}
-        <Drawer
-          anchor="right"
-          open={unreadCount > 0}
-          onClose={() => setUnreadCount(0)}
-          sx={{
-            '& .MuiDrawer-paper': {
-              width: 400,
-              p: 2,
-            },
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            Real-time Alerts
-          </Typography>
-          {notifications.slice(0, 10).map((notification, index) => (
-            <Box
-              key={index}
-              sx={{
-                p: 2,
-                mb: 1,
-                bgcolor: 'background.paper',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <WarningIcon color="error" sx={{ mr: 1 }} />
-                <Typography variant="subtitle2">
-                  High Risk Alert
-                </Typography>
-                <Chip
-                  label="CRITICAL"
-                  size="small"
-                  color="error"
-                  sx={{ ml: 'auto' }}
-                />
-              </Box>
-              <Typography variant="body2">
-                Transaction ID: {notification.transaction_id}
-              </Typography>
-              <Typography variant="body2">
-                Amount: ${notification.amount?.toFixed(2)}
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                Risk Score: {(notification.risk_score * 100).toFixed(1)}%
-              </Typography>
-            </Box>
-          ))}
-        </Drawer>
       </Box>
     </ThemeProvider>
   );
