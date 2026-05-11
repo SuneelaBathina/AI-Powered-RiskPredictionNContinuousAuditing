@@ -1,39 +1,59 @@
 import { useEffect, useRef, useState } from 'react';
+import { io } from 'socket.io-client';
 
 export const useWebSocket = (url) => {
   const [lastMessage, setLastMessage] = useState(null);
   const [readyState, setReadyState] = useState(false);
-  const ws = useRef(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    ws.current = new WebSocket(url);
+    console.log('Initializing WebSocket connection to:', url);
+    
+    socketRef.current = io(url, {
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+    });
 
-    ws.current.onopen = () => {
-      console.log('WebSocket connected');
+    socketRef.current.on('connect', () => {
+      console.log('Socket.IO connected successfully');
       setReadyState(true);
-    };
+    });
 
-    ws.current.onclose = () => {
-      console.log('WebSocket disconnected');
+    socketRef.current.on('disconnect', (reason) => {
+      console.log('Socket.IO disconnected:', reason);
       setReadyState(false);
-    };
+    });
 
-    ws.current.onmessage = (event) => {
-      setLastMessage(event);
-    };
+    socketRef.current.onAny((event, payload) => {
+      console.log('WebSocket event received:', event);
+      setLastMessage({ event, payload });
+    });
 
-    ws.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
+    socketRef.current.on('connect_error', (error) => {
+      console.error('Socket.IO connect error:', error);
+    });
+
+    socketRef.current.on('error', (error) => {
+      console.error('Socket.IO error:', error);
+    });
 
     return () => {
-      ws.current.close();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
   }, [url]);
 
-  const sendMessage = (message) => {
-    if (ws.current && readyState) {
-      ws.current.send(message);
+  const sendMessage = (event, payload) => {
+    if (socketRef.current && readyState) {
+      console.log('Sending WebSocket message:', event);
+      socketRef.current.emit(event, payload);
+    } else {
+      console.warn('WebSocket not ready. Event not sent:', event);
     }
   };
 
